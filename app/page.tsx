@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { ArrowRight, Calendar, MapPin, Users, Wallet } from "lucide-react";
 import Hero3DCanvas from "@/components/Hero3DCanvas";
 import TiltCard from "@/components/TiltCard";
+import ThemeToggle from "@/components/ThemeToggle";
 import ParticipantForm from "@/components/ParticipantForm";
 import CrownVotingForm from "@/components/CrownVotingForm";
 import VoteGraph from "@/components/VoteGraph";
@@ -26,13 +28,11 @@ export default function HomePage() {
   );
   const [voteResults, setVoteResults] = useState<CandidateTally[]>([]);
   const [totalVotes, setTotalVotes] = useState(0);
-  const [knownCandidates, setKnownCandidates] = useState<string[]>([]);
   const [loadingVotes, setLoadingVotes] = useState(false);
 
   const [participantStats, setParticipantStats] = useState({
     total: 0,
     willingToPayCount: 0,
-    mode: "supabase" as "supabase" | "demo",
   });
 
   const fetchParticipants = useCallback(async () => {
@@ -43,7 +43,6 @@ export default function HomePage() {
       setParticipantStats({
         total: data.total ?? 0,
         willingToPayCount: data.willingToPayCount ?? 0,
-        mode: data.mode ?? "supabase",
       });
     } catch {
       // Ignore transient load error
@@ -61,7 +60,6 @@ export default function HomePage() {
       const data = await res.json();
       setVoteResults(data.results ?? []);
       setTotalVotes(data.totalVotes ?? 0);
-      setKnownCandidates(data.knownCandidates ?? []);
     } finally {
       setLoadingVotes(false);
     }
@@ -113,7 +111,7 @@ export default function HomePage() {
 
       {/* Editorial Masthead */}
       <header className="sticky top-0 z-30 border-b border-navy/10 bg-ivory/90 backdrop-blur-md dark:border-white/10 dark:bg-navy-deep/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3.5">
           <a href="#" className="flex items-center gap-3">
             <img
               src={SCHOOL_LOGO_URL}
@@ -130,19 +128,20 @@ export default function HomePage() {
             </div>
           </a>
 
-          <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-navy/85 dark:text-ivory/85 sm:gap-7">
-            <a href="#register" className="transition hover:text-saffron">
+          <nav className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-navy/85 dark:text-ivory/85 sm:gap-5">
+            <a href="#register" className="hidden transition hover:text-saffron sm:inline">
               RSVP
             </a>
-            <a href="#vote" className="transition hover:text-saffron">
+            <a href="#vote" className="hidden transition hover:text-saffron sm:inline">
               Ballot
             </a>
-            <a
-              href="#results"
-              className="rounded-full bg-navy px-4 py-2 text-ivory transition hover:bg-saffron dark:bg-brass-light dark:text-navy-deep"
-            >
-              Live Tally
+            <a href="#results" className="hidden transition hover:text-saffron md:inline">
+              Tally
             </a>
+            <Link href="/admin" className="transition hover:text-saffron">
+              Admin
+            </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -190,7 +189,6 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Live Batch Counters */}
           <div className="hero-stagger mt-10 grid max-w-md grid-cols-2 gap-4">
             <div className="rounded-2xl border border-navy/15 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-navy-deep/85">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/70 dark:text-ivory/70">
@@ -264,7 +262,6 @@ export default function HomePage() {
           <ParticipantForm onRegistered={fetchParticipants} />
           <div id="vote">
             <CrownVotingForm
-              knownCandidates={knownCandidates}
               onVoteCast={(cat) => {
                 setSelectedCategory(cat);
                 fetchVotes(cat);
