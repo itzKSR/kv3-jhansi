@@ -1,7 +1,5 @@
 -- Run this in Supabase -> SQL Editor -> New Query
--- Safe to run on a fresh database OR an existing one from an earlier draft.
 
--- 1. Farewell Participants Table (Class XII by default, Stream only)
 create table if not exists public.participants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -10,10 +8,6 @@ create table if not exists public.participants (
   created_at timestamptz not null default now()
 );
 
--- If an older version had class_section as NOT NULL, make it optional so stream-only inserts succeed
-alter table public.participants alter column class_section drop not null;
-
--- 2. Crown Votes Table (Mr. Farewell & Miss Farewell ONLY, 1 vote per Roll No. per Crown)
 create table if not exists public.votes (
   id uuid primary key default gen_random_uuid(),
   roll_no text not null,
@@ -25,19 +19,31 @@ create table if not exists public.votes (
   created_at timestamptz not null default now()
 );
 
--- Upgrade path if an earlier draft created votes without roll_no or voter_stream
 alter table public.votes add column if not exists roll_no text not null default '';
 alter table public.votes add column if not exists voter_stream text not null default '';
 
--- Hard database lock: no roll number can repeat in the same crown category
 create unique index if not exists votes_unique_roll_per_crown
   on public.votes (lower(trim(roll_no)), crown_category);
 
 create index if not exists votes_crown_candidate_idx
   on public.votes (crown_category, candidate_key);
 
+-- 3. Voting Controls & Timer Settings (single row id = 1)
+create table if not exists public.voting_settings (
+  id int primary key default 1,
+  mode text not null default 'manual_on' check (mode in ('manual_on', 'manual_off', 'scheduled')),
+  start_at timestamptz,
+  end_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.voting_settings (id, mode)
+values (1, 'manual_on')
+on conflict (id) do nothing;
+
 alter table public.participants enable row level security;
 alter table public.votes enable row level security;
+alter table public.voting_settings enable row level security;
 
 drop policy if exists "Allow public insert participants" on public.participants;
 create policy "Allow public insert participants"
@@ -54,3 +60,15 @@ create policy "Allow public insert votes"
 drop policy if exists "Allow public select votes" on public.votes;
 create policy "Allow public select votes"
   on public.votes for select using (true);
+
+drop policy if exists "Allow public delete votes" on public.votes;
+create policy "Allow public delete votes"
+  on public.votes for delete using (true);
+
+drop policy if exists "Allow public select voting_settings" on public.voting_settings;
+create policy "Allow public select voting_settings"
+  on public.voting_settings for select using (true);
+
+drop policy if exists "Allow public upsert voting_settings" on public.voting_settings;
+create policy "Allow public upsert voting_settings"
+  on public.voting_settings for all using (true) with check (true);
