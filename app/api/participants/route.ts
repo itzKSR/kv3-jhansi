@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("participants")
-    .select("id, name, class_section, stream, willing_to_pay, created_at")
+    .select("id, name, stream, willing_to_pay, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const name = String(body.name ?? "").trim();
     const stream = String(body.stream ?? "").trim();
-    const classSection = "Class XII";
     const willingToPay =
       body.willingToPay === true || body.willingToPay === "yes";
 
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
       const record = {
         id: crypto.randomUUID(),
         name,
-        class_section: classSection,
+        class_section: "Class XII",
         stream,
         willing_to_pay: willingToPay,
         created_at: new Date().toISOString(),
@@ -73,11 +72,10 @@ export async function POST(request: Request) {
       .from("participants")
       .insert({
         name,
-        class_section: classSection,
         stream,
         willing_to_pay: willingToPay,
       })
-      .select()
+      .select("id, name, stream, willing_to_pay, created_at")
       .single();
 
     if (error) {
