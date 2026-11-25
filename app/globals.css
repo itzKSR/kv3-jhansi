@@ -3,37 +3,41 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
   scroll-behavior: smooth;
-  background-color: #07070b;
-  color: #f5f5f7;
+  background-color: #faf6ee;
+  color: #0f1d3a;
 }
 
 body {
-  background: radial-gradient(circle at 20% 10%, rgba(234, 179, 8, 0.08), transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 45%),
-    #07070b;
+  background-color: #faf6ee;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(217, 107, 39, 0.08), transparent 38%),
+    radial-gradient(circle at 88% 18%, rgba(15, 29, 58, 0.06), transparent 42%),
+    radial-gradient(rgba(15, 29, 58, 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 26px 26px;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
+/* Override TiltCard's glass-card class for crisp editorial surfaces */
 .glass-card {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(255, 253, 248, 0.92);
+  border: 1px solid rgba(15, 29, 58, 0.12);
+  box-shadow: 0 18px 48px -22px rgba(15, 29, 58, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transform-style: preserve-3d;
 }
 
-.gold-gradient-text {
-  background: linear-gradient(135deg, #fef08a 0%, #facc15 45%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.navy-surface {
+  background: linear-gradient(155deg, #13254a 0%, #091226 100%);
+  border: 1px solid rgba(223, 184, 92, 0.35);
+}
+
+.kvs-ribbon {
+  background: linear-gradient(90deg, #d96b27 0%, #b88a2e 50%, #0f1d3a 100%);
 }
