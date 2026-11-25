@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "media",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,20 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        obsidian: "#07070b",
-        gold: {
-          300: "#fde68a",
-          400: "#facc15",
-          500: "#eab308",
-          600: "#ca8a04",
+        ivory: "#FAF6EE",
+        parchment: "#F1E9DA",
+        navy: {
+          DEFAULT: "#0F1D3A",
+          deep: "#091226",
+          soft: "#1B2E56",
         },
+        saffron: {
+          DEFAULT: "#D96B27",
+          light: "#F2994A",
+          dark: "#B45318",
+        },
+        brass: {
+          DEFAULT: "#B88A2E",
+          light: "#E6C265",
+        },
+        crimson: "#9B2226",
       },
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
-        display: ["var(--font-syne)", "system-ui", "sans-serif"],
+        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        serif: ["var(--font-cormorant)", "Georgia", "serif"],
       },
       boxShadow: {
-        glow: "0 0 40px -10px rgba(250, 204, 21, 0.35)",
+        editorial: "0 18px 50px -20px rgba(15, 29, 58, 0.16)",
+        crest: "0 24px 60px -18px rgba(15, 29, 58, 0.35)",
       },
     },
   },
