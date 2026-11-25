@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ClipboardCheck } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Sparkles } from "lucide-react";
 import TiltCard from "./TiltCard";
 import { STREAMS } from "@/lib/constants";
+
+const SCHOOL_LOGO_URL =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQnNkkFI2cqfvb085dubJIIm0VRZ-N_Vu8NLog3QZeig&s";
 
 interface ParticipantFormProps {
   onRegistered?: () => void;
@@ -14,6 +17,11 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
   const [stream, setStream] = useState<string>(STREAMS[0]);
   const [willingToPay, setWillingToPay] = useState<"yes" | "no" | "">("");
   const [submitting, setSubmitting] = useState(false);
+  const [issuedPass, setIssuedPass] = useState<{
+    name: string;
+    stream: string;
+    willingToPay: boolean;
+  } | null>(null);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     text: string;
@@ -48,13 +56,14 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
         throw new Error(data.error || "Could not save registration.");
       }
 
+      setIssuedPass({
+        name: name.trim(),
+        stream,
+        willingToPay: willingToPay === "yes",
+      });
       setFeedback({
         type: "success",
-        text: `RSVP confirmed for ${name.trim()} (${stream})!${
-          data.mode === "demo"
-            ? " (Preview mode: run SQL in Supabase to persist.)"
-            : ""
-        }`,
+        text: `RSVP confirmed for ${name.trim()} (${stream})!`,
       });
       setName("");
       setWillingToPay("");
@@ -82,8 +91,7 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
           Student RSVP Form
         </h2>
         <p className="mt-1 text-sm text-navy/75 dark:text-ivory/75">
-          Confirm your Class XII farewell details so we can plan passes and
-          refreshments.
+          Confirm your Class XII details to receive your digital Farewell Pass.
         </p>
       </div>
 
@@ -104,7 +112,7 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
 
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-navy dark:text-ivory/90">
-            Class XII Stream
+            Stream
           </label>
           <select
             value={stream}
@@ -172,6 +180,53 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
           {submitting ? "Saving RSVP..." : "Submit Farewell Registration"}
         </button>
       </form>
+
+      {/* Personalized Digital Class XII Participant Pass */}
+      {issuedPass && (
+        <div className="navy-surface mt-6 rounded-2xl p-5 text-ivory shadow-crest">
+          <div className="flex items-center justify-between border-b border-ivory/15 pb-3">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={SCHOOL_LOGO_URL}
+                alt="KV3 Jhansi"
+                className="h-9 w-9 rounded-full bg-white p-0.5 object-contain"
+              />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brass-light">
+                  PM SHRI KV No. 3, Jhansi
+                </p>
+                <p className="font-serif text-base font-bold text-ivory">
+                  Farewell Participant Pass
+                </p>
+              </div>
+            </div>
+            <Sparkles className="h-4 w-4 text-brass-light" />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-ivory/60">
+                Participant
+              </p>
+              <p className="font-serif text-2xl font-bold text-ivory">
+                {issuedPass.name}
+              </p>
+              <p className="mt-0.5 text-xs text-saffron-light">
+                Class XII &bull; {issuedPass.stream}
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                issuedPass.willingToPay
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                  : "bg-white/10 text-ivory/80 border border-white/20"
+              }`}
+            >
+              {issuedPass.willingToPay ? "Contribution: Yes" : "Contribution: No"}
+            </span>
+          </div>
+        </div>
+      )}
     </TiltCard>
   );
 }
