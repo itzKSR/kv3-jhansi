@@ -10,7 +10,9 @@ import Hero3DCanvas from "@/components/Hero3DCanvas";
 import TiltCard from "@/components/TiltCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import ParticipantForm from "@/components/ParticipantForm";
-import CrownVotingForm from "@/components/CrownVotingForm";
+import CrownVotingForm, {
+  type VotingScheduleState,
+} from "@/components/CrownVotingForm";
 import VoteGraph from "@/components/VoteGraph";
 import { CROWN_CATEGORIES, EVENT_TITLE, SCHOOL_NAME } from "@/lib/constants";
 import type { CandidateTally } from "@/lib/voteCounter";
@@ -30,6 +32,12 @@ export default function HomePage() {
   const [totalVotes, setTotalVotes] = useState(0);
   const [loadingVotes, setLoadingVotes] = useState(false);
 
+  const [votingSettings, setVotingSettings] = useState<VotingScheduleState>({
+    mode: "manual_on",
+    start_at: null,
+    end_at: null,
+  });
+
   const [participantStats, setParticipantStats] = useState({
     total: 0,
     willingToPayCount: 0,
@@ -46,6 +54,21 @@ export default function HomePage() {
       });
     } catch {
       // Ignore transient load error
+    }
+  }, []);
+
+  const fetchVotingSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/voting-settings", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setVotingSettings({
+        mode: data.mode ?? "manual_on",
+        start_at: data.start_at ?? null,
+        end_at: data.end_at ?? null,
+      });
+    } catch {
+      // Fallback to default open
     }
   }, []);
 
@@ -67,7 +90,8 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchParticipants();
-  }, [fetchParticipants]);
+    fetchVotingSettings();
+  }, [fetchParticipants, fetchVotingSettings]);
 
   useEffect(() => {
     fetchVotes(selectedCategory);
@@ -106,10 +130,8 @@ export default function HomePage() {
     <div ref={containerRef} className="relative min-h-screen">
       <Hero3DCanvas />
 
-      {/* Heritage Top Ribbon */}
       <div className="kvs-ribbon h-1.5 w-full" />
 
-      {/* Editorial Masthead */}
       <header className="sticky top-0 z-30 border-b border-navy/10 bg-ivory/90 backdrop-blur-md dark:border-white/10 dark:bg-navy-deep/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3.5">
           <a href="#" className="flex items-center gap-3">
@@ -146,7 +168,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Split Editorial Hero */}
       <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-5 pb-20 pt-14 lg:grid-cols-12 lg:pt-20">
         <div className="lg:col-span-7">
           <p className="hero-stagger inline-flex items-center gap-2 rounded-full border border-saffron/30 bg-saffron/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-saffron-dark dark:border-saffron-light/40 dark:text-saffron-light">
@@ -211,7 +232,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Right Side: Interactive 3D-Tilt School Crest Gala Pass */}
         <div className="hero-stagger lg:col-span-5">
           <TiltCard className="navy-surface rounded-3xl p-8 text-ivory shadow-crest">
             <div className="flex items-center justify-between border-b border-ivory/20 pb-5">
@@ -253,7 +273,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Main Content */}
       <main className="mx-auto max-w-6xl space-y-16 px-5 pb-28">
         <section
           id="register"
@@ -262,6 +281,7 @@ export default function HomePage() {
           <ParticipantForm onRegistered={fetchParticipants} />
           <div id="vote">
             <CrownVotingForm
+              votingSettings={votingSettings}
               onVoteCast={(cat) => {
                 setSelectedCategory(cat);
                 fetchVotes(cat);
@@ -272,6 +292,7 @@ export default function HomePage() {
 
         <section id="results" className="reveal-section">
           <VoteGraph
+            votingSettings={votingSettings}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             results={voteResults}
