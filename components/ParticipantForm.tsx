@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Sparkles, UserCheck } from "lucide-react";
+import { CheckCircle2, ClipboardCheck } from "lucide-react";
 import TiltCard from "./TiltCard";
 import { CLASS_SECTIONS, STREAMS } from "@/lib/constants";
 
@@ -27,7 +27,7 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
     if (!name.trim() || !willingToPay) {
       setFeedback({
         type: "error",
-        text: "Please enter your name and choose Yes or No for Willing to Pay.",
+        text: "Please enter your full name and select Yes or No for Willing to Pay.",
       });
       return;
     }
@@ -52,11 +52,7 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
 
       setFeedback({
         type: "success",
-        text: `You're on the KV3 Farewell list, ${name.trim()}!${
-          data.mode === "demo"
-            ? " (Preview mode: connect Supabase to persist permanently.)"
-            : ""
-        }`,
+        text: `RSVP confirmed for ${name.trim()} (${classSection}). See you at the farewell!`,
       });
       setName("");
       setWillingToPay("");
@@ -72,25 +68,27 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
   }
 
   return (
-    <TiltCard className="p-7 sm:p-9 shadow-glow">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gold-400/15 text-gold-400">
-          <UserCheck className="h-5 w-5" />
+    <TiltCard className="overflow-hidden p-7 sm:p-9">
+      <div className="mb-7 border-b border-navy/10 pb-5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-saffron">
+            Step 01 &bull; Attendance Roll
+          </span>
+          <ClipboardCheck className="h-5 w-5 text-navy/60" />
         </div>
-        <div>
-          <h2 className="font-display text-2xl font-bold text-white">
-            Participant Registration
-          </h2>
-          <p className="text-sm text-zinc-400">
-            Confirm your spot for the Class XII Farewell Party
-          </p>
-        </div>
+        <h2 className="mt-2 font-serif text-3xl font-bold text-navy sm:text-4xl">
+          Student RSVP Form
+        </h2>
+        <p className="mt-1 text-sm text-navy/65">
+          Register your Class XII details so the organizing committee can plan
+          seating, passes, and refreshments.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-            Full Name
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
+            Student Full Name
           </label>
           <input
             type="text"
@@ -98,19 +96,19 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Aarav Sharma"
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-gold-400/70 focus:ring-2 focus:ring-gold-400/20"
+            className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder-navy/35 outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
               Class &amp; Section
             </label>
             <select
               value={classSection}
               onChange={(e) => setClassSection(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-gold-400/70"
+              className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
             >
               {CLASS_SECTIONS.map((sec) => (
                 <option key={sec} value={sec}>
@@ -121,13 +119,13 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
               Stream
             </label>
             <select
               value={stream}
               onChange={(e) => setStream(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-gold-400/70"
+              className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
             >
               {STREAMS.map((st) => (
                 <option key={st} value={st}>
@@ -139,8 +137,8 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
         </div>
 
         <div>
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-            Willing to Pay Contribution?
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-navy/80">
+            Willing to Pay Farewell Contribution?
           </span>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -148,19 +146,19 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
               onClick={() => setWillingToPay("yes")}
               className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                 willingToPay === "yes"
-                  ? "border-gold-400 bg-gold-400/20 text-gold-300 shadow-glow"
-                  : "border-white/10 bg-black/30 text-zinc-300 hover:border-white/25"
+                  ? "border-navy bg-navy text-ivory shadow-sm"
+                  : "border-navy/15 bg-white text-navy/75 hover:border-navy/40"
               }`}
             >
-              Yes, I&apos;m in
+              Yes, Willing to Pay
             </button>
             <button
               type="button"
               onClick={() => setWillingToPay("no")}
               className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
                 willingToPay === "no"
-                  ? "border-purple-400 bg-purple-500/20 text-purple-200"
-                  : "border-white/10 bg-black/30 text-zinc-300 hover:border-white/25"
+                  ? "border-saffron bg-saffron text-white shadow-sm"
+                  : "border-navy/15 bg-white text-navy/75 hover:border-navy/40"
               }`}
             >
               No
@@ -172,12 +170,12 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
           <div
             className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-sm ${
               feedback.type === "success"
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                : "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                ? "border-emerald-700/25 bg-emerald-50 text-emerald-900"
+                : "border-crimson/25 bg-rose-50 text-crimson"
             }`}
           >
             {feedback.type === "success" && (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
             )}
             <span>{feedback.text}</span>
           </div>
@@ -186,10 +184,9 @@ export default function ParticipantForm({ onRegistered }: ParticipantFormProps) 
         <button
           type="submit"
           disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 via-amber-400 to-yellow-500 px-5 py-3.5 text-sm font-bold text-black transition hover:brightness-110 disabled:opacity-60"
+          className="w-full rounded-xl bg-navy px-5 py-3.5 text-sm font-semibold tracking-wide text-ivory transition hover:bg-navy-soft disabled:opacity-60"
         >
-          <Sparkles className="h-4 w-4" />
-          {submitting ? "Saving Registration..." : "Confirm Farewell Entry"}
+          {submitting ? "Saving RSVP..." : "Submit Farewell Registration"}
         </button>
       </form>
     </TiltCard>
