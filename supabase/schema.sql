@@ -22,6 +22,8 @@ create table if not exists public.votes (
   created_at timestamptz not null default now()
 );
 
+alter table public.votes add column if not exists roll_no text not null default '';
+
 -- Hard database lock: no roll number can be repeated in the same crown category
 create unique index if not exists votes_unique_roll_per_crown
   on public.votes (lower(trim(roll_no)), crown_category);
