@@ -21,17 +21,30 @@ export async function GET(request: Request) {
       mode: "demo",
       category,
       ...tally,
-      ...(includeAudit ? { auditVotes: demoVotes } : {}),
+      ...(includeAudit
+        ? {
+            auditVotes: demoVotes.map((v) => ({
+              id: v.id,
+              roll_no: v.voter_name,
+              voter_name: v.voter_name,
+              voter_stream: v.voter_class,
+              crown_category: v.crown_category,
+              candidate_name: v.candidate_name,
+              created_at: v.created_at,
+            })),
+          }
+        : {}),
     });
   }
 
   const selectCols = includeAudit
-    ? "id, roll_no, voter_name, voter_class, crown_category, candidate_name, created_at"
+    ? "id, roll_no, voter_name, voter_stream, crown_category, candidate_name, created_at"
     : "candidate_name, crown_category";
 
   const { data, error } = await supabase
     .from("votes")
     .select(selectCols)
+    .in("crown_category", ["mr-farewell", "miss-farewell"])
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -42,7 +55,7 @@ export async function GET(request: Request) {
     id?: string;
     roll_no?: string;
     voter_name?: string;
-    voter_class?: string;
+    voter_stream?: string;
     crown_category: string;
     candidate_name: string;
     created_at?: string;
@@ -67,9 +80,19 @@ export async function POST(request: Request) {
     const crownCategory = String(body.crownCategory ?? "").trim() as CrownCategoryId;
     const candidateNameRaw = String(body.candidateName ?? "").trim();
 
-    if (!rollNo || !voterName || !voterStream || !crownCategory || !candidateNameRaw) {
+    if (
+      crownCategory !== "mr-farewell" &&
+      crownCategory !== "miss-farewell"
+    ) {
       return NextResponse.json(
-        { error: "Roll Number, Your Name, Stream, Crown, and Candidate are required." },
+        { error: "Voting is only open for Mr. Farewell and Miss Farewell." },
+        { status: 400 }
+      );
+    }
+
+    if (!rollNo || !voterName || !voterStream || !candidateNameRaw) {
+      return NextResponse.json(
+        { error: "Roll Number, Your Name, Stream, and Candidate are required." },
         { status: 400 }
       );
     }
@@ -117,7 +140,7 @@ export async function POST(request: Request) {
       .insert({
         roll_no: rollNo,
         voter_name: voterName,
-        voter_class: voterStream,
+        voter_stream: voterStream,
         crown_category: crownCategory,
         candidate_name: candidateName,
         candidate_key: candidateKey,
