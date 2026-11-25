@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -11,11 +11,17 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, Lock, RefreshCw, Trophy } from "lucide-react";
+import { BarChart3, Clock, Lock, RefreshCw, Trophy } from "lucide-react";
 import { CROWN_CATEGORIES } from "@/lib/constants";
 import type { CandidateTally } from "@/lib/voteCounter";
+import {
+  formatCountdown,
+  getLiveVotingPhase,
+  type VotingScheduleState,
+} from "./CrownVotingForm";
 
 interface VoteGraphProps {
+  votingSettings: VotingScheduleState;
   selectedCategory: string;
   onCategoryChange: (cat: string) => void;
   results: CandidateTally[];
@@ -27,6 +33,7 @@ interface VoteGraphProps {
 const BAR_COLORS = ["#D96B27", "#E6C265", "#1E40AF", "#10B981", "#9B2226"];
 
 export default function VoteGraph({
+  votingSettings,
   selectedCategory,
   onCategoryChange,
   results,
@@ -37,7 +44,14 @@ export default function VoteGraph({
   const requiredPasscode = process.env.NEXT_PUBLIC_RESULTS_PASSCODE || "";
   const [enteredPasscode, setEnteredPasscode] = useState("");
   const [unlocked, setUnlocked] = useState(!requiredPasscode);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const phase = getLiveVotingPhase(votingSettings, nowMs);
   const activeCrown =
     CROWN_CATEGORIES.find((c) => c.id === selectedCategory) ??
     CROWN_CATEGORIES[0];
@@ -77,6 +91,37 @@ export default function VoteGraph({
 
   return (
     <div className="glass-card rounded-3xl p-7 sm:p-10">
+      {/* Live Countdown Banner on VoteGraph when scheduled */}
+      {phase === "upcoming" && (
+        <div className="navy-surface mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4 text-ivory">
+          <div className="flex items-center gap-2.5">
+            <Clock className="h-5 w-5 text-brass-light" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-saffron-light">
+                Scheduled Voting
+              </p>
+              <p className="text-sm font-medium text-ivory/90">
+                Voting will start in{" "}
+                <span className="font-mono font-bold text-brass-light">
+                  {formatCountdown(votingSettings.start_at, nowMs)}
+                </span>
+              </p>
+            </div>
+          </div>
+          {votingSettings.start_at && (
+            <span className="text-xs text-ivory/70">
+              {new Date(votingSettings.start_at).toLocaleString("en-IN")}
+            </span>
+          )}
+        </div>
+      )}
+
+      {phase === "closed" && (
+        <div className="mb-6 flex items-center justify-between rounded-2xl border border-saffron/30 bg-saffron/10 px-5 py-3 text-xs font-semibold text-saffron-dark dark:text-saffron-light">
+          <span>Voting is currently closed — showing final recorded tally.</span>
+        </div>
+      )}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-navy/10 pb-5 dark:border-white/10">
         <div>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-saffron dark:text-saffron-light">
@@ -124,10 +169,17 @@ export default function VoteGraph({
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-navy/20 bg-parchment/40 text-center dark:border-white/20 dark:bg-navy-deep/60">
           <Trophy className="mb-2 h-8 w-8 text-brass dark:text-brass-light" />
           <p className="font-serif text-xl font-semibold text-navy dark:text-ivory">
-            No ballots recorded for {activeCrown.label} yet
+            {phase === "upcoming"
+              ? `Voting will start in ${formatCountdown(
+                  votingSettings.start_at,
+                  nowMs
+                )}`
+              : `No ballots recorded for ${activeCrown.label} yet`}
           </p>
           <p className="mt-1 text-xs text-navy/65 dark:text-ivory/65">
-            Submit the first vote above to see the live standings chart update.
+            {phase === "upcoming"
+              ? "The live bar chart will populate as soon as voting opens."
+              : "Submit the first vote above to see the live standings chart update."}
           </p>
         </div>
       ) : (
