@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
-export type VotingMode = "manual_on" | "manual_off" | "scheduled";
+type VotingMode = "manual_on" | "manual_off" | "scheduled";
 
-export interface VotingSettings {
+interface VotingSettings {
   mode: VotingMode;
   start_at: string | null;
   end_at: string | null;
@@ -27,7 +27,7 @@ function getAdminPasscode(): string {
   );
 }
 
-export function computeVotingStatus(
+function computeVotingStatus(
   settings: VotingSettings
 ): "open" | "upcoming" | "closed" {
   if (settings.mode === "manual_on") return "open";
