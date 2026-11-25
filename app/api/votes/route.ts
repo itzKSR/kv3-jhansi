@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { demoVotes } from "@/lib/demoStore";
+import { CANDIDATES_BY_CROWN, type CrownCategoryId } from "@/lib/constants";
 import {
   countVotesByCandidate,
   formatDisplayName,
@@ -10,56 +11,73 @@ import {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category") ?? "mr-farewell";
+  const includeAudit = searchParams.get("audit") === "1";
 
   const supabase = getSupabaseServerClient();
 
   if (!supabase) {
     const tally = countVotesByCandidate(demoVotes, category);
-    const knownCandidates = Array.from(
-      new Set(demoVotes.map((v) => formatDisplayName(v.candidate_name)))
-    ).sort();
-
     return NextResponse.json({
       mode: "demo",
       category,
       ...tally,
-      knownCandidates,
+      ...(includeAudit ? { auditVotes: demoVotes } : {}),
     });
   }
 
+  const selectCols = includeAudit
+    ? "id, roll_no, voter_name, voter_class, crown_category, candidate_name, created_at"
+    : "candidate_name, crown_category";
+
   const { data, error } = await supabase
     .from("votes")
-    .select("candidate_name, crown_category");
+    .select(selectCols)
+    .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const rows = data ?? [];
+  const rows = (data ?? []) as unknown as Array<{
+    id?: string;
+    roll_no?: string;
+    voter_name?: string;
+    voter_class?: string;
+    crown_category: string;
+    candidate_name: string;
+    created_at?: string;
+  }>;
+
   const tally = countVotesByCandidate(rows, category);
-  const knownCandidates = Array.from(
-    new Set(rows.map((v) => formatDisplayName(v.candidate_name)))
-  ).sort();
 
   return NextResponse.json({
     mode: "supabase",
     category,
     ...tally,
-    knownCandidates,
+    ...(includeAudit ? { auditVotes: rows } : {}),
   });
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const rollNo = String(body.rollNo ?? "").trim().toUpperCase();
     const voterName = String(body.voterName ?? "").trim();
-    const voterClass = String(body.voterClass ?? "").trim();
-    const crownCategory = String(body.crownCategory ?? "").trim();
+    const voterStream = String(body.voterStream ?? "").trim();
+    const crownCategory = String(body.crownCategory ?? "").trim() as CrownCategoryId;
     const candidateNameRaw = String(body.candidateName ?? "").trim();
 
-    if (!voterName || !voterClass || !crownCategory || !candidateNameRaw) {
+    if (!rollNo || !voterName || !voterStream || !crownCategory || !candidateNameRaw) {
       return NextResponse.json(
-        { error: "All voting fields are required." },
+        { error: "Roll Number, Your Name, Stream, Crown, and Candidate are required." },
+        { status: 400 }
+      );
+    }
+
+    const allowedCandidates = CANDIDATES_BY_CROWN[crownCategory];
+    if (!allowedCandidates || !allowedCandidates.includes(candidateNameRaw)) {
+      return NextResponse.json(
+        { error: "Please select a valid candidate from the dropdown." },
         { status: 400 }
       );
     }
@@ -71,22 +89,20 @@ export async function POST(request: Request) {
     if (!supabase) {
       const duplicate = demoVotes.some(
         (v) =>
-          v.voter_name.trim().toLowerCase() === voterName.toLowerCase() &&
-          v.voter_class.trim().toLowerCase() === voterClass.toLowerCase() &&
+          v.voter_name.toUpperCase() === rollNo &&
           v.crown_category === crownCategory
       );
-
       if (duplicate) {
         return NextResponse.json(
-          { error: "You have already voted in this crown category." },
+          { error: `Roll No. ${rollNo} has already voted in this category.` },
           { status: 409 }
         );
       }
 
       const record = {
         id: crypto.randomUUID(),
-        voter_name: voterName,
-        voter_class: voterClass,
+        voter_name: `${rollNo} - ${voterName}`,
+        voter_class: voterStream,
         crown_category: crownCategory,
         candidate_name: candidateName,
         candidate_key: candidateKey,
@@ -99,8 +115,9 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from("votes")
       .insert({
+        roll_no: rollNo,
         voter_name: voterName,
-        voter_class: voterClass,
+        voter_class: voterStream,
         crown_category: crownCategory,
         candidate_name: candidateName,
         candidate_key: candidateKey,
@@ -111,7 +128,7 @@ export async function POST(request: Request) {
     if (error) {
       if (error.code === "23505") {
         return NextResponse.json(
-          { error: "You have already cast a vote in this crown category." },
+          { error: `Roll No. ${rollNo} has already voted in this category.` },
           { status: 409 }
         );
       }
