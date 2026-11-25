@@ -32,6 +32,7 @@ export default function HomePage() {
   const [participantStats, setParticipantStats] = useState({
     total: 0,
     willingToPayCount: 0,
+    mode: "supabase" as "supabase" | "demo",
   });
 
   const fetchParticipants = useCallback(async () => {
@@ -42,6 +43,7 @@ export default function HomePage() {
       setParticipantStats({
         total: data.total ?? 0,
         willingToPayCount: data.willingToPayCount ?? 0,
+        mode: data.mode ?? "supabase",
       });
     } catch {
       // Ignore transient load error
@@ -110,7 +112,7 @@ export default function HomePage() {
       <div className="kvs-ribbon h-1.5 w-full" />
 
       {/* Editorial Masthead */}
-      <header className="sticky top-0 z-30 border-b border-navy/10 bg-ivory/85 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-navy/10 bg-ivory/90 backdrop-blur-md dark:border-white/10 dark:bg-navy-deep/90">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <a href="#" className="flex items-center gap-3">
             <img
@@ -119,16 +121,16 @@ export default function HomePage() {
               className="h-11 w-11 rounded-full border border-navy/15 bg-white p-0.5 object-contain shadow-sm"
             />
             <div className="leading-tight">
-              <p className="font-serif text-base font-bold text-navy sm:text-lg">
+              <p className="font-serif text-base font-bold text-navy dark:text-ivory sm:text-lg">
                 KV No. 3, Jhansi
               </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-saffron">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-saffron dark:text-saffron-light">
                 Class XII Farewell
               </p>
             </div>
           </a>
 
-          <nav className="flex items-center gap-5 text-xs font-semibold uppercase tracking-wider text-navy/75 sm:gap-7">
+          <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-navy/85 dark:text-ivory/85 sm:gap-7">
             <a href="#register" className="transition hover:text-saffron">
               RSVP
             </a>
@@ -137,7 +139,7 @@ export default function HomePage() {
             </a>
             <a
               href="#results"
-              className="rounded-full bg-navy px-4 py-2 text-ivory transition hover:bg-saffron"
+              className="rounded-full bg-navy px-4 py-2 text-ivory transition hover:bg-saffron dark:bg-brass-light dark:text-navy-deep"
             >
               Live Tally
             </a>
@@ -148,33 +150,41 @@ export default function HomePage() {
       {/* Split Editorial Hero */}
       <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-5 pb-20 pt-14 lg:grid-cols-12 lg:pt-20">
         <div className="lg:col-span-7">
-          <p className="hero-stagger inline-flex items-center gap-2 rounded-full border border-saffron/30 bg-saffron/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-saffron-dark">
+          <p className="hero-stagger inline-flex items-center gap-2 rounded-full border border-saffron/30 bg-saffron/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-saffron-dark dark:border-saffron-light/40 dark:text-saffron-light">
             {SCHOOL_NAME}
           </p>
 
-          <h1 className="hero-stagger mt-6 font-serif text-5xl font-bold leading-[1.05] tracking-tight text-navy sm:text-7xl">
+          <h1 className="hero-stagger mt-6 font-serif text-5xl font-bold leading-[1.05] tracking-tight text-navy dark:text-ivory sm:text-7xl">
             The Final Bell.{" "}
-            <span className="italic text-saffron">Class XII Adieu.</span>
+            <span className="italic text-saffron dark:text-saffron-light">
+              Class XII Adieu.
+            </span>
           </h1>
 
-          <p className="hero-stagger mt-5 max-w-xl text-base leading-relaxed text-navy/70 sm:text-lg">
+          <p className="hero-stagger mt-5 max-w-xl text-base leading-relaxed text-navy/75 dark:text-ivory/75 sm:text-lg">
             Celebrating the outgoing batch of Kendriya Vidyalaya No. 3, Jhansi.
-            Confirm your attendance for the {EVENT_TITLE}, nominate classmates
-            for the official KV crowns, and follow the live vote standings.
+            Confirm your attendance for the {EVENT_TITLE}, vote for{" "}
+            <strong className="font-semibold text-navy dark:text-ivory">
+              Mr. Farewell
+            </strong>{" "}
+            &amp;{" "}
+            <strong className="font-semibold text-navy dark:text-ivory">
+              Miss Farewell
+            </strong>
+            , and track the live standings.
           </p>
 
-          {/* Actions */}
           <div className="hero-stagger mt-8 flex flex-wrap items-center gap-4">
             <a
               href="#register"
-              className="inline-flex items-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-ivory shadow-editorial transition hover:bg-navy-soft"
+              className="inline-flex items-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-ivory shadow-editorial transition hover:bg-navy-soft dark:bg-brass-light dark:text-navy-deep"
             >
               Confirm Your RSVP
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
               href="#vote"
-              className="inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white/80 px-7 py-3.5 text-sm font-semibold text-navy transition hover:border-saffron hover:text-saffron"
+              className="inline-flex items-center gap-2 rounded-full border border-navy/25 bg-white/85 px-7 py-3.5 text-sm font-semibold text-navy transition hover:border-saffron hover:text-saffron dark:border-white/20 dark:bg-navy-deep/80 dark:text-ivory dark:hover:border-brass-light"
             >
               Vote for Crowns
             </a>
@@ -182,21 +192,21 @@ export default function HomePage() {
 
           {/* Live Batch Counters */}
           <div className="hero-stagger mt-10 grid max-w-md grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-navy/10 bg-white/80 p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/55">
+            <div className="rounded-2xl border border-navy/15 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-navy-deep/85">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/70 dark:text-ivory/70">
                 <Users className="h-3.5 w-3.5 text-saffron" />
                 Total RSVPs
               </div>
-              <p className="mt-1 font-serif text-3xl font-bold text-navy">
+              <p className="mt-1 font-serif text-3xl font-bold text-navy dark:text-ivory">
                 {participantStats.total}
               </p>
             </div>
-            <div className="rounded-2xl border border-navy/10 bg-white/80 p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/55">
-                <Wallet className="h-3.5 w-3.5 text-emerald-700" />
+            <div className="rounded-2xl border border-navy/15 bg-white/90 p-4 shadow-sm dark:border-white/15 dark:bg-navy-deep/85">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/70 dark:text-ivory/70">
+                <Wallet className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
                 Willing to Pay
               </div>
-              <p className="mt-1 font-serif text-3xl font-bold text-emerald-800">
+              <p className="mt-1 font-serif text-3xl font-bold text-emerald-800 dark:text-emerald-300">
                 {participantStats.willingToPayCount}
               </p>
             </div>
@@ -206,11 +216,11 @@ export default function HomePage() {
         {/* Right Side: Interactive 3D-Tilt School Crest Gala Pass */}
         <div className="hero-stagger lg:col-span-5">
           <TiltCard className="navy-surface rounded-3xl p-8 text-ivory shadow-crest">
-            <div className="flex items-center justify-between border-b border-ivory/15 pb-5">
+            <div className="flex items-center justify-between border-b border-ivory/20 pb-5">
               <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-brass-light">
                 Official Gala Pass
               </span>
-              <span className="rounded-full border border-brass-light/40 bg-brass/20 px-3 py-0.5 text-[11px] font-semibold text-brass-light">
+              <span className="rounded-full border border-brass-light/50 bg-brass/25 px-3 py-0.5 text-[11px] font-semibold text-brass-light">
                 Class XII
               </span>
             </div>
@@ -231,7 +241,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 border-t border-ivory/15 pt-5 text-xs text-ivory/80">
+            <div className="grid grid-cols-2 gap-3 border-t border-ivory/20 pt-5 text-xs text-ivory/90">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-brass-light" />
                 <span>KV3 Jhansi Campus</span>
@@ -275,8 +285,8 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-navy/10 bg-parchment/60 py-8 text-center text-xs text-navy/65">
-        <p className="font-serif text-base font-semibold text-navy">
+      <footer className="border-t border-navy/10 bg-parchment/70 py-8 text-center text-xs text-navy/75 dark:border-white/10 dark:bg-navy-deep/80 dark:text-ivory/75">
+        <p className="font-serif text-base font-semibold text-navy dark:text-ivory">
           {SCHOOL_NAME}
         </p>
         <p className="mt-1">
