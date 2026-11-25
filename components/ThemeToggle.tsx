@@ -1,56 +1,47 @@
--- Run this in Supabase -> SQL Editor -> New Query
--- Safe to run on a fresh database OR an existing one from an earlier draft.
+"use client";
 
--- 1. Farewell Participants Table (Class XII by default, Stream only)
-create table if not exists public.participants (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  stream text not null,
-  willing_to_pay boolean not null default false,
-  created_at timestamptz not null default now()
-);
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 
--- If an older version had class_section as NOT NULL, make it optional so stream-only inserts succeed
-alter table public.participants alter column class_section drop not null;
+export default function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
--- 2. Crown Votes Table (Mr. Farewell & Miss Farewell ONLY, 1 vote per Roll No. per Crown)
-create table if not exists public.votes (
-  id uuid primary key default gen_random_uuid(),
-  roll_no text not null,
-  voter_name text not null default '',
-  voter_stream text not null default '',
-  crown_category text not null check (crown_category in ('mr-farewell', 'miss-farewell')),
-  candidate_name text not null,
-  candidate_key text not null,
-  created_at timestamptz not null default now()
-);
+  useEffect(() => {
+    const saved = localStorage.getItem("kv3_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldBeDark = saved ? saved === "dark" : prefersDark;
+    document.documentElement.classList.toggle("dark", shouldBeDark);
+    setDark(shouldBeDark);
+    setMounted(true);
+  }, []);
 
--- Upgrade path if an earlier draft created votes without roll_no or voter_stream
-alter table public.votes add column if not exists roll_no text not null default '';
-alter table public.votes add column if not exists voter_stream text not null default '';
+  function toggleTheme() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("kv3_theme", next ? "dark" : "light");
+  }
 
--- Hard database lock: no roll number can repeat in the same crown category
-create unique index if not exists votes_unique_roll_per_crown
-  on public.votes (lower(trim(roll_no)), crown_category);
-
-create index if not exists votes_crown_candidate_idx
-  on public.votes (crown_category, candidate_key);
-
-alter table public.participants enable row level security;
-alter table public.votes enable row level security;
-
-drop policy if exists "Allow public insert participants" on public.participants;
-create policy "Allow public insert participants"
-  on public.participants for insert with check (true);
-
-drop policy if exists "Allow public select participants" on public.participants;
-create policy "Allow public select participants"
-  on public.participants for select using (true);
-
-drop policy if exists "Allow public insert votes" on public.votes;
-create policy "Allow public insert votes"
-  on public.votes for insert with check (true);
-
-drop policy if exists "Allow public select votes" on public.votes;
-create policy "Allow public select votes"
-  on public.votes for select using (true);
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label="Toggle Light or Dark theme"
+      title={dark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      className="inline-flex items-center gap-1.5 rounded-full border border-navy/20 bg-white/85 px-3 py-1.5 text-xs font-semibold text-navy transition hover:border-saffron hover:text-saffron dark:border-white/20 dark:bg-navy-deep/90 dark:text-ivory dark:hover:border-brass-light dark:hover:text-brass-light"
+    >
+      {mounted && dark ? (
+        <>
+          <Sun className="h-3.5 w-3.5 text-brass-light" />
+          <span className="hidden sm:inline">Light</span>
+        </>
+      ) : (
+        <>
+          <Moon className="h-3.5 w-3.5 text-saffron" />
+          <span className="hidden sm:inline">Dark</span>
+        </>
+      )}
+    </button>
+  );
+}
