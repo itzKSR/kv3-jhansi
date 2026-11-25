@@ -4,11 +4,13 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import {
+  Clock,
   Download,
   FileSpreadsheet,
   LayoutGrid,
   Loader2,
   Lock,
+  Power,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -17,6 +19,10 @@ import {
   Users,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import {
+  getLiveVotingPhase,
+  type VotingScheduleState,
+} from "@/components/CrownVotingForm";
 
 const SCHOOL_LOGO_URL =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQnNkkFI2cqfvb085dubJIIm0VRZ-N_Vu8NLog3QZeig&s";
@@ -39,6 +45,14 @@ interface VoteAuditRow {
   created_at: string;
 }
 
+function toLocalInputValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function AdminAuditPage() {
   const [passInput, setPassInput] = useState("");
   const [activePasscode, setActivePasscode] = useState("");
@@ -51,6 +65,16 @@ export default function AdminAuditPage() {
   const [loading, setLoading] = useState(false);
   const [retractingId, setRetractingId] = useState<string | null>(null);
 
+  const [votingSettings, setVotingSettings] = useState<VotingScheduleState>({
+    mode: "manual_on",
+    start_at: null,
+    end_at: null,
+  });
+  const [startInput, setStartInput] = useState("");
+  const [endInput, setEndInput] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
+
   const [participantView, setParticipantView] = useState<"cards" | "table">(
     "cards"
   );
@@ -60,12 +84,13 @@ export default function AdminAuditPage() {
   const fetchAuditAndParticipants = useCallback(async (passcode: string) => {
     setLoading(true);
     try {
-      const [pRes, vRes] = await Promise.all([
+      const [pRes, vRes, sRes] = await Promise.all([
         fetch("/api/participants", { cache: "no-store" }),
         fetch("/api/votes?audit=1", {
           cache: "no-store",
           headers: { "x-admin-passcode": passcode },
         }),
+        fetch("/api/voting-settings", { cache: "no-store" }),
       ]);
 
       if (vRes.status === 401) {
@@ -79,6 +104,16 @@ export default function AdminAuditPage() {
       if (vRes.ok) {
         const vData = await vRes.json();
         setVotes(vData.auditVotes ?? []);
+      }
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        setVotingSettings({
+          mode: sData.mode ?? "manual_on",
+          start_at: sData.start_at ?? null,
+          end_at: sData.end_at ?? null,
+        });
+        setStartInput(toLocalInputValue(sData.start_at ?? null));
+        setEndInput(toLocalInputValue(sData.end_at ?? null));
       }
       return { ok: true as const };
     } catch {
@@ -109,6 +144,46 @@ export default function AdminAuditPage() {
     setUnlocked(true);
   }
 
+  async function updateVotingSchedule(
+    mode: "manual_on" | "manual_off" | "scheduled"
+  ) {
+    setSavingSettings(true);
+    setSettingsMsg(null);
+    try {
+      const res = await fetch("/api/voting-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-passcode": activePasscode,
+        },
+        body: JSON.stringify({
+          mode,
+          start_at: mode === "scheduled" && startInput ? startInput : null,
+          end_at: mode === "scheduled" && endInput ? endInput : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSettingsMsg(data.error || "Could not update voting schedule.");
+        return;
+      }
+      setVotingSettings({
+        mode: data.mode,
+        start_at: data.start_at,
+        end_at: data.end_at,
+      });
+      setSettingsMsg(
+        mode === "manual_on"
+          ? "Voting is now LIVE for everyone."
+          : mode === "manual_off"
+          ? "Voting has been turned OFF."
+          : "Voting timer schedule saved!"
+      );
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   async function handleRetractVote(vote: VoteAuditRow) {
     const confirmed = window.confirm(
       `Retract vote by Roll No. ${vote.roll_no} (${vote.voter_name}) for ${
@@ -133,6 +208,8 @@ export default function AdminAuditPage() {
       setRetractingId(null);
     }
   }
+
+  const currentPhase = getLiveVotingPhase(votingSettings, Date.now());
 
   const filteredParticipants = participants.filter((p) => {
     if (payFilter === "yes") return p.willing_to_pay;
@@ -217,8 +294,8 @@ export default function AdminAuditPage() {
             Organizer Audit Portal
           </h1>
           <p className="mt-1 text-sm text-navy/70 dark:text-ivory/70">
-            Enter the admin passcode to view participant passes, retract fake
-            votes, and export Excel (.xlsx) sheets.
+            Enter the admin passcode to control voting timers, view passes,
+            retract fake votes, and export Excel (.xlsx).
           </p>
           <div className="mt-6 flex gap-2">
             <input
@@ -268,7 +345,7 @@ export default function AdminAuditPage() {
             KV3 Jhansi Committee
           </span>
           <h1 className="mt-1 font-serif text-4xl font-bold text-navy dark:text-ivory">
-            Participants &amp; Vote Audit
+            Organizer Control Center
           </h1>
         </div>
 
@@ -306,6 +383,120 @@ export default function AdminAuditPage() {
           </button>
         </div>
       </div>
+
+      {/* SECTION 0: Voting Power & Timer Control */}
+      <section className="glass-card rounded-3xl p-6 sm:p-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 pb-4 dark:border-white/10">
+          <div>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-saffron dark:text-saffron-light">
+              <Power className="h-3.5 w-3.5" />
+              Ballot Controls
+            </span>
+            <h2 className="mt-1 font-serif text-2xl font-bold text-navy dark:text-ivory sm:text-3xl">
+              Voting Status &amp; Timer
+            </h2>
+          </div>
+
+          <span
+            className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${
+              currentPhase === "open"
+                ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                : currentPhase === "upcoming"
+                ? "border border-brass/40 bg-brass/15 text-brass dark:text-brass-light"
+                : "border border-crimson/30 bg-rose-500/15 text-crimson dark:text-rose-300"
+            }`}
+          >
+            {currentPhase === "open"
+              ? "Voting LIVE"
+              : currentPhase === "upcoming"
+              ? "Scheduled (Countdown)"
+              : "Voting CLOSED"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Manual Instant Switches */}
+          <div className="space-y-3 lg:col-span-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-navy/70 dark:text-ivory/70">
+              Instant Manual Override
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={savingSettings}
+                onClick={() => updateVotingSchedule("manual_on")}
+                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                  votingSettings.mode === "manual_on"
+                    ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                    : "border-navy/20 bg-white text-navy hover:border-emerald-600 dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
+                }`}
+              >
+                Turn ON Now
+              </button>
+              <button
+                type="button"
+                disabled={savingSettings}
+                onClick={() => updateVotingSchedule("manual_off")}
+                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                  votingSettings.mode === "manual_off"
+                    ? "border-crimson bg-crimson text-white shadow-sm"
+                    : "border-navy/20 bg-white text-navy hover:border-crimson dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
+                }`}
+              >
+                Turn OFF Now
+              </button>
+            </div>
+          </div>
+
+          {/* Timer Schedule */}
+          <div className="space-y-3 lg:col-span-7">
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-navy/70 dark:text-ivory/70">
+              <Clock className="h-3.5 w-3.5 text-saffron" />
+              Schedule with Timer (Shows Live Countdown)
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-navy/70 dark:text-ivory/70">
+                  Start Date &amp; Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={startInput}
+                  onChange={(e) => setStartInput(e.target.value)}
+                  className="w-full rounded-xl border border-navy/20 bg-white px-3 py-2 text-xs text-navy outline-none focus:border-saffron dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-navy/70 dark:text-ivory/70">
+                  End Date &amp; Time (Optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={endInput}
+                  onChange={(e) => setEndInput(e.target.value)}
+                  className="w-full rounded-xl border border-navy/20 bg-white px-3 py-2 text-xs text-navy outline-none focus:border-saffron dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  disabled={savingSettings || (!startInput && !endInput)}
+                  onClick={() => updateVotingSchedule("scheduled")}
+                  className="w-full rounded-xl bg-saffron px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-saffron-dark disabled:opacity-50"
+                >
+                  {savingSettings ? "Saving..." : "Save Timer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {settingsMsg && (
+          <p className="mt-4 rounded-xl border border-saffron/30 bg-saffron/10 px-4 py-2 text-xs font-semibold text-saffron-dark dark:text-saffron-light">
+            {settingsMsg}
+          </p>
+        )}
+      </section>
 
       {/* SECTION 1: Registered Participants */}
       <section className="glass-card rounded-3xl p-6 sm:p-8">
