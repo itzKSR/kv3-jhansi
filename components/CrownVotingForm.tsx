@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Crown, Send } from "lucide-react";
+import { Award, CheckCircle2 } from "lucide-react";
 import TiltCard from "./TiltCard";
 import { CLASS_SECTIONS, CROWN_CATEGORIES } from "@/lib/constants";
 
@@ -26,6 +26,8 @@ export default function CrownVotingForm({
     text: string;
   } | null>(null);
 
+  const selectedMeta = CROWN_CATEGORIES.find((c) => c.id === crownCategory);
+
   async function handleVote(e: React.FormEvent) {
     e.preventDefault();
     setFeedback(null);
@@ -33,7 +35,7 @@ export default function CrownVotingForm({
     if (!voterName.trim() || !candidateName.trim()) {
       setFeedback({
         type: "error",
-        text: "Please enter both your name and the candidate you are voting for.",
+        text: "Please enter both your name and the candidate you are nominating.",
       });
       return;
     }
@@ -42,7 +44,7 @@ export default function CrownVotingForm({
     if (typeof window !== "undefined" && localStorage.getItem(localKey)) {
       setFeedback({
         type: "error",
-        text: "This browser has already cast a vote for this crown category.",
+        text: "This device has already cast a vote in this crown category.",
       });
       return;
     }
@@ -71,7 +73,7 @@ export default function CrownVotingForm({
 
       setFeedback({
         type: "success",
-        text: `Vote recorded for ${data.vote.candidate_name}!`,
+        text: `Ballot recorded for ${data.vote.candidate_name}!`,
       });
       setCandidateName("");
       onVoteCast(crownCategory);
@@ -86,25 +88,26 @@ export default function CrownVotingForm({
   }
 
   return (
-    <TiltCard className="p-7 sm:p-9">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-500/20 text-purple-300">
-          <Crown className="h-5 w-5" />
+    <TiltCard className="overflow-hidden p-7 sm:p-9">
+      <div className="mb-7 border-b border-navy/10 pb-5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-saffron">
+            Step 02 &bull; Official Ballot
+          </span>
+          <Award className="h-5 w-5 text-brass" />
         </div>
-        <div>
-          <h2 className="font-display text-2xl font-bold text-white">
-            KV Crown Voting Booth
-          </h2>
-          <p className="text-sm text-zinc-400">
-            One vote per student per crown category
-          </p>
-        </div>
+        <h2 className="mt-2 font-serif text-3xl font-bold text-navy sm:text-4xl">
+          KV Farewell Crowns
+        </h2>
+        <p className="mt-1 text-sm text-navy/65">
+          Cast one verified vote per title for the Class XII crowning ceremony.
+        </p>
       </div>
 
       <form onSubmit={handleVote} className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
               Your Name (Voter)
             </label>
             <input
@@ -113,18 +116,18 @@ export default function CrownVotingForm({
               value={voterName}
               onChange={(e) => setVoterName(e.target.value)}
               placeholder="Your full name"
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-purple-400/70"
+              className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder-navy/35 outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
               Your Class
             </label>
             <select
               value={voterClass}
               onChange={(e) => setVoterClass(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-purple-400/70"
+              className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
             >
               {CLASS_SECTIONS.map((sec) => (
                 <option key={sec} value={sec}>
@@ -136,13 +139,13 @@ export default function CrownVotingForm({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
-            Select Crown Category
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
+            Crown Title
           </label>
           <select
             value={crownCategory}
             onChange={(e) => setCrownCategory(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition focus:border-purple-400/70"
+            className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
           >
             {CROWN_CATEGORIES.map((cat) => (
               <option key={cat.id} value={cat.id}>
@@ -150,10 +153,15 @@ export default function CrownVotingForm({
               </option>
             ))}
           </select>
+          {selectedMeta && (
+            <p className="mt-1.5 text-xs italic text-navy/55">
+              &ldquo;{selectedMeta.tagline}&rdquo;
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-navy/80">
             Candidate You Are Voting For
           </label>
           <input
@@ -163,16 +171,16 @@ export default function CrownVotingForm({
             value={candidateName}
             onChange={(e) => setCandidateName(e.target.value)}
             placeholder="Type candidate's full name"
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-purple-400/70"
+            className="w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm text-navy placeholder-navy/35 outline-none transition focus:border-saffron focus:ring-2 focus:ring-saffron/15"
           />
           <datalist id="known-candidates-list">
             {knownCandidates.map((cand) => (
               <option key={cand} value={cand} />
             ))}
           </datalist>
-          <p className="mt-1.5 text-xs text-zinc-500">
-            Names are automatically normalized (case &amp; extra spaces ignored)
-            when counting votes.
+          <p className="mt-1.5 text-xs text-navy/50">
+            Minor spacing and capitalization differences are merged automatically
+            in the tally.
           </p>
         </div>
 
@@ -180,12 +188,12 @@ export default function CrownVotingForm({
           <div
             className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-sm ${
               feedback.type === "success"
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                : "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                ? "border-emerald-700/25 bg-emerald-50 text-emerald-900"
+                : "border-crimson/25 bg-rose-50 text-crimson"
             }`}
           >
             {feedback.type === "success" && (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
             )}
             <span>{feedback.text}</span>
           </div>
@@ -194,10 +202,9 @@ export default function CrownVotingForm({
         <button
           type="submit"
           disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 px-5 py-3.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+          className="w-full rounded-xl bg-saffron px-5 py-3.5 text-sm font-semibold tracking-wide text-white transition hover:bg-saffron-dark disabled:opacity-60"
         >
-          <Send className="h-4 w-4" />
-          {submitting ? "Submitting Vote..." : "Cast Crown Vote"}
+          {submitting ? "Recording Ballot..." : "Cast Official Crown Vote"}
         </button>
       </form>
     </TiltCard>
