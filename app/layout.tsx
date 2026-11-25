@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Syne } from "next/font/google";
+import { Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  weight: ["500", "600", "700"],
+  variable: "--font-cormorant",
 });
 
-const syne = Syne({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-syne",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-jakarta",
 });
 
 export const metadata: Metadata = {
-  title: "KV3 Jhansi | Class XII Farewell Gala & Crown Voting",
+  title: "PM SHRI KV No. 3 Jhansi | Class XII Farewell Gala",
   description:
-    "Official Class XII Farewell registration, crown voting, and live tally for PM SHRI Kendriya Vidyalaya No. 3, Jhansi.",
+    "Official Class XII Farewell RSVP, KV Crown Ballot, and Live Tally for PM SHRI Kendriya Vidyalaya No. 3, Jhansi.",
 };
 
 export default function RootLayout({
@@ -24,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${syne.variable}`}>
-      <body className="font-sans antialiased selection:bg-gold-400/30 selection:text-gold-300">
+    <html lang="en" className={`${cormorant.variable} ${jakarta.variable}`}>
+      <body className="bg-ivory font-sans text-navy antialiased selection:bg-saffron/20 selection:text-navy">
         {children}
       </body>
     </html>
