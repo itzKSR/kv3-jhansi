@@ -39,14 +39,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const name = String(body.name ?? "").trim();
-    const classSection = String(body.classSection ?? "").trim();
     const stream = String(body.stream ?? "").trim();
+    const classSection = "Class XII";
     const willingToPay =
       body.willingToPay === true || body.willingToPay === "yes";
 
-    if (!name || !classSection || !stream) {
+    if (!name || !stream) {
       return NextResponse.json(
-        { error: "Please fill in Name, Class, Stream, and Willing to Pay." },
+        { error: "Please enter your Name, Stream, and Willing to Pay." },
         { status: 400 }
       );
     }
