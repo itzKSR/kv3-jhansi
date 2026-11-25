@@ -8,10 +8,28 @@ import {
   normalizeCandidateKey,
 } from "@/lib/voteCounter";
 
+function getAdminPasscode(): string {
+  return (
+    process.env.ADMIN_PASSCODE ||
+    process.env.NEXT_PUBLIC_ADMIN_PASSCODE ||
+    "kv3admin"
+  );
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category") ?? "mr-farewell";
   const includeAudit = searchParams.get("audit") === "1";
+
+  if (includeAudit) {
+    const provided = request.headers.get("x-admin-passcode") ?? "";
+    if (provided !== getAdminPasscode()) {
+      return NextResponse.json(
+        { error: "Incorrect admin passcode." },
+        { status: 401 }
+      );
+    }
+  }
 
   const supabase = getSupabaseServerClient();
 
@@ -165,4 +183,34 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  const provided = request.headers.get("x-admin-passcode") ?? "";
+  if (provided !== getAdminPasscode()) {
+    return NextResponse.json(
+      { error: "Unauthorized. Invalid admin passcode." },
+      { status: 401 }
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const voteId = searchParams.get("id");
+  if (!voteId) {
+    return NextResponse.json({ error: "Missing vote id." }, { status: 400 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    const idx = demoVotes.findIndex((v) => v.id === voteId);
+    if (idx !== -1) demoVotes.splice(idx, 1);
+    return NextResponse.json({ deleted: true });
+  }
+
+  const { error } = await supabase.from("votes").delete().eq("id", voteId);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ deleted: true });
 }
