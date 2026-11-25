@@ -12,77 +12,74 @@ export default function Hero3DCanvas() {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      55,
+      50,
       container.clientWidth / container.clientHeight,
       0.1,
       100
     );
-    camera.position.z = 7;
+    camera.position.z = 8;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Centerpiece: Golden 3D Crown-inspired TorusKnot + Wireframe Halo
-    const group = new THREE.Group();
-    scene.add(group);
+    // Refined architectural astrolabe rings in KVS Brass, Saffron, and Navy
+    const rig = new THREE.Group();
+    rig.position.set(2.4, 0.3, -1);
+    scene.add(rig);
 
-    const knotGeo = new THREE.TorusKnotGeometry(1.55, 0.38, 160, 24);
-    const knotMat = new THREE.MeshStandardMaterial({
-      color: 0xfacc15,
-      metalness: 0.85,
-      roughness: 0.2,
-      wireframe: true,
-      emissive: 0x713f12,
-      emissiveIntensity: 0.4,
-    });
-    const knot = new THREE.Mesh(knotGeo, knotMat);
-    group.add(knot);
-
-    const ringGeo = new THREE.TorusGeometry(2.6, 0.03, 16, 120);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xc084fc,
+    const outerRingGeo = new THREE.TorusGeometry(2.6, 0.018, 16, 120);
+    const outerRingMat = new THREE.MeshBasicMaterial({
+      color: 0xb88a2e,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.32,
     });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2.6;
-    group.add(ring);
+    const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
+    rig.add(outerRing);
 
-    // Ambient golden stardust particles
-    const particleCount = 650;
-    const positions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 18;
+    const midRingGeo = new THREE.TorusGeometry(2.05, 0.014, 16, 100);
+    const midRingMat = new THREE.MeshBasicMaterial({
+      color: 0xd96b27,
+      transparent: true,
+      opacity: 0.28,
+    });
+    const midRing = new THREE.Mesh(midRingGeo, midRingMat);
+    midRing.rotation.x = Math.PI / 3;
+    rig.add(midRing);
+
+    const innerGeo = new THREE.IcosahedronGeometry(1.15, 1);
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: 0x0f1d3a,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.12,
+    });
+    const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+    rig.add(innerMesh);
+
+    // Gentle floating brass-dust motes
+    const count = 260;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) {
+      positions[i] = (Math.random() - 0.5) * 16;
     }
-    const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const particleMat = new THREE.PointsMaterial({
-      color: 0xfde68a,
+    const dotGeo = new THREE.BufferGeometry();
+    dotGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const dotMat = new THREE.PointsMaterial({
+      color: 0xb88a2e,
       size: 0.045,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.4,
     });
-    const particles = new THREE.Points(particleGeo, particleMat);
-    scene.add(particles);
+    const motes = new THREE.Points(dotGeo, dotMat);
+    scene.add(motes);
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
-    const pointLight = new THREE.PointLight(0xfacc15, 45, 25);
-    pointLight.position.set(4, 5, 6);
-    scene.add(pointLight);
-    const violetLight = new THREE.PointLight(0xa855f7, 30, 25);
-    violetLight.position.set(-5, -4, 4);
-    scene.add(violetLight);
-
-    // Mouse parallax state
-    let targetX = 0;
-    let targetY = 0;
+    let pointerX = 0;
+    let pointerY = 0;
     const onPointerMove = (e: PointerEvent) => {
-      targetX = (e.clientX / window.innerWidth - 0.5) * 1.4;
-      targetY = (e.clientY / window.innerHeight - 0.5) * 1.0;
+      pointerX = (e.clientX / window.innerWidth - 0.5) * 0.9;
+      pointerY = (e.clientY / window.innerHeight - 0.5) * 0.6;
     };
     window.addEventListener("pointermove", onPointerMove);
 
@@ -101,13 +98,16 @@ export default function Hero3DCanvas() {
       animId = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
 
-      knot.rotation.x = t * 0.22;
-      knot.rotation.y = t * 0.32;
-      ring.rotation.z = -t * 0.18;
-      particles.rotation.y = t * 0.04;
+      outerRing.rotation.z = t * 0.1;
+      outerRing.rotation.y = Math.sin(t * 0.25) * 0.35;
+      midRing.rotation.x = Math.PI / 3 + t * 0.14;
+      midRing.rotation.y = -t * 0.12;
+      innerMesh.rotation.y = t * 0.16;
+      innerMesh.rotation.x = t * 0.08;
+      motes.rotation.y = t * 0.025;
 
-      group.position.x += (targetX * 0.6 - group.position.x) * 0.05;
-      group.position.y += (-targetY * 0.5 - group.position.y) * 0.05;
+      rig.position.x += (2.4 + pointerX * 0.7 - rig.position.x) * 0.04;
+      rig.position.y += (0.3 - pointerY * 0.5 - rig.position.y) * 0.04;
 
       renderer.render(scene, camera);
     };
@@ -117,12 +117,14 @@ export default function Hero3DCanvas() {
       cancelAnimationFrame(animId);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", onResize);
-      knotGeo.dispose();
-      knotMat.dispose();
-      ringGeo.dispose();
-      ringMat.dispose();
-      particleGeo.dispose();
-      particleMat.dispose();
+      outerRingGeo.dispose();
+      outerRingMat.dispose();
+      midRingGeo.dispose();
+      midRingMat.dispose();
+      innerGeo.dispose();
+      innerMat.dispose();
+      dotGeo.dispose();
+      dotMat.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement);
@@ -134,7 +136,7 @@ export default function Hero3DCanvas() {
     <div
       ref={mountRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 opacity-80"
+      className="pointer-events-none fixed inset-0 -z-10"
     />
   );
 }
