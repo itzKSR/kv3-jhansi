@@ -91,6 +91,41 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const supabase = getSupabaseServerClient();
+
+    // Enforce admin voting schedule / ON-OFF lock on the server
+    if (supabase) {
+      const { data: settings } = await supabase
+        .from("voting_settings")
+        .select("mode, start_at, end_at")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (settings) {
+        if (settings.mode === "manual_off") {
+          return NextResponse.json(
+            { error: "Voting is currently turned off by the organizer." },
+            { status: 403 }
+          );
+        }
+        if (settings.mode === "scheduled") {
+          const now = Date.now();
+          if (settings.start_at && now < Date.parse(settings.start_at)) {
+            return NextResponse.json(
+              { error: "Voting has not started yet." },
+              { status: 403 }
+            );
+          }
+          if (settings.end_at && now >= Date.parse(settings.end_at)) {
+            return NextResponse.json(
+              { error: "Voting has ended." },
+              { status: 403 }
+            );
+          }
+        }
+      }
+    }
+
     const body = await request.json();
     const rollNo = String(body.rollNo ?? "").trim().toUpperCase();
     const voterName = String(body.voterName ?? "").trim();
@@ -125,7 +160,6 @@ export async function POST(request: Request) {
 
     const candidateKey = normalizeCandidateKey(candidateNameRaw);
     const candidateName = formatDisplayName(candidateNameRaw);
-    const supabase = getSupabaseServerClient();
 
     if (!supabase) {
       const duplicate = demoVotes.some(
