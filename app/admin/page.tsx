@@ -1,16 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import {
   Download,
   FileSpreadsheet,
   LayoutGrid,
+  Loader2,
   Lock,
   RefreshCw,
+  Search,
   ShieldCheck,
   Table as TableIcon,
+  Trash2,
   Users,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -37,25 +40,38 @@ interface VoteAuditRow {
 }
 
 export default function AdminAuditPage() {
-  const adminPasscode = process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "kv3admin";
   const [passInput, setPassInput] = useState("");
+  const [activePasscode, setActivePasscode] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [votes, setVotes] = useState<VoteAuditRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [retractingId, setRetractingId] = useState<string | null>(null);
+
   const [participantView, setParticipantView] = useState<"cards" | "table">(
     "cards"
   );
   const [payFilter, setPayFilter] = useState<"all" | "yes" | "no">("all");
+  const [voteSearch, setVoteSearch] = useState("");
 
-  const loadData = useCallback(async () => {
+  const fetchAuditAndParticipants = useCallback(async (passcode: string) => {
     setLoading(true);
     try {
       const [pRes, vRes] = await Promise.all([
         fetch("/api/participants", { cache: "no-store" }),
-        fetch("/api/votes?audit=1", { cache: "no-store" }),
+        fetch("/api/votes?audit=1", {
+          cache: "no-store",
+          headers: { "x-admin-passcode": passcode },
+        }),
       ]);
+
+      if (vRes.status === 401) {
+        return { ok: false, error: "Incorrect admin passcode." };
+      }
+
       if (pRes.ok) {
         const pData = await pRes.json();
         setParticipants(pData.participants ?? []);
@@ -64,19 +80,74 @@ export default function AdminAuditPage() {
         const vData = await vRes.json();
         setVotes(vData.auditVotes ?? []);
       }
+      return { ok: true as const };
+    } catch {
+      return { ok: false, error: "Network error. Please try again." };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    if (unlocked) loadData();
-  }, [unlocked, loadData]);
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError(null);
+    if (!passInput.trim()) {
+      setAuthError("Please enter the admin passcode.");
+      return;
+    }
+
+    setAuthLoading(true);
+    const result = await fetchAuditAndParticipants(passInput.trim());
+    setAuthLoading(false);
+
+    if (!result.ok) {
+      setAuthError(result.error ?? "Incorrect passcode.");
+      return;
+    }
+
+    setActivePasscode(passInput.trim());
+    setUnlocked(true);
+  }
+
+  async function handleRetractVote(vote: VoteAuditRow) {
+    const confirmed = window.confirm(
+      `Retract vote by Roll No. ${vote.roll_no} (${vote.voter_name}) for ${
+        vote.crown_category === "mr-farewell" ? "Mr. Farewell" : "Miss Farewell"
+      }? This will allow Roll No. ${vote.roll_no} to vote again.`
+    );
+    if (!confirmed) return;
+
+    setRetractingId(vote.id);
+    try {
+      const res = await fetch(`/api/votes?id=${encodeURIComponent(vote.id)}`, {
+        method: "DELETE",
+        headers: { "x-admin-passcode": activePasscode },
+      });
+      if (res.ok) {
+        setVotes((prev) => prev.filter((v) => v.id !== vote.id));
+      } else {
+        const err = await res.json();
+        alert(err.error || "Could not retract vote.");
+      }
+    } finally {
+      setRetractingId(null);
+    }
+  }
 
   const filteredParticipants = participants.filter((p) => {
     if (payFilter === "yes") return p.willing_to_pay;
     if (payFilter === "no") return !p.willing_to_pay;
     return true;
+  });
+
+  const filteredVotes = votes.filter((v) => {
+    const q = voteSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      v.roll_no.toLowerCase().includes(q) ||
+      v.voter_name.toLowerCase().includes(q) ||
+      v.candidate_name.toLowerCase().includes(q)
+    );
   });
 
   function exportVoteAuditExcel() {
@@ -134,7 +205,10 @@ export default function AdminAuditPage() {
   if (!unlocked) {
     return (
       <div className="flex min-h-screen items-center justify-center px-5">
-        <div className="glass-card w-full max-w-md rounded-3xl p-8 text-center">
+        <form
+          onSubmit={handleLogin}
+          className="glass-card w-full max-w-md rounded-3xl p-8 text-center"
+        >
           <div className="mb-4 flex justify-end">
             <ThemeToggle />
           </div>
@@ -143,8 +217,8 @@ export default function AdminAuditPage() {
             Organizer Audit Portal
           </h1>
           <p className="mt-1 text-sm text-navy/70 dark:text-ivory/70">
-            Enter the admin passcode to view participant passes and export Excel
-            (.xlsx) sheets.
+            Enter the admin passcode to view participant passes, retract fake
+            votes, and export Excel (.xlsx) sheets.
           </p>
           <div className="mt-6 flex gap-2">
             <input
@@ -155,29 +229,38 @@ export default function AdminAuditPage() {
               className="w-full rounded-xl border border-navy/20 bg-white px-4 py-2.5 text-sm text-navy outline-none focus:border-saffron dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
             />
             <button
-              type="button"
-              onClick={() => {
-                if (passInput === adminPasscode) setUnlocked(true);
-              }}
-              className="rounded-xl bg-navy px-5 py-2.5 text-sm font-semibold text-ivory dark:bg-brass-light dark:text-navy-deep"
+              type="submit"
+              disabled={authLoading}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-navy px-5 py-2.5 text-sm font-semibold text-ivory disabled:opacity-60 dark:bg-brass-light dark:text-navy-deep"
             >
-              Enter
+              {authLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                "Enter"
+              )}
             </button>
           </div>
+          {authError && (
+            <p className="mt-3 rounded-xl border border-crimson/25 bg-rose-50 px-3 py-2 text-xs font-semibold text-crimson dark:border-rose-400/30 dark:bg-rose-950/60 dark:text-rose-200">
+              {authError}
+            </p>
+          )}
           <Link
             href="/"
             className="mt-5 inline-block text-xs font-semibold text-saffron hover:underline"
           >
             &larr; Back to Farewell Site
           </Link>
-        </div>
+        </form>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-5 py-10">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-navy/10 pb-6 dark:border-white/10">
         <div>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-saffron dark:text-saffron-light">
@@ -199,7 +282,7 @@ export default function AdminAuditPage() {
           <ThemeToggle />
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => fetchAuditAndParticipants(activePasscode)}
             className="inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white px-4 py-2 text-xs font-semibold text-navy dark:border-white/20 dark:bg-navy-deep dark:text-ivory"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -224,7 +307,7 @@ export default function AdminAuditPage() {
         </div>
       </div>
 
-      {/* SECTION 1: Separate Participants Section (Modern Individual Cards + Table Toggle) */}
+      {/* SECTION 1: Registered Participants */}
       <section className="glass-card rounded-3xl p-6 sm:p-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-navy/10 pb-4 dark:border-white/10">
           <div>
@@ -287,7 +370,6 @@ export default function AdminAuditPage() {
             No participants match this filter yet.
           </p>
         ) : participantView === "cards" ? (
-          /* Modern Theme-Matching Individual Participant Gala Cards (Class XII by default) */
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredParticipants.map((p) => (
               <div
@@ -380,11 +462,30 @@ export default function AdminAuditPage() {
         )}
       </section>
 
-      {/* SECTION 2: Combined Vote Audit Table */}
+      {/* SECTION 2: Combined Vote Audit Log + Retract Vote */}
       <section className="glass-card overflow-hidden rounded-3xl p-6 sm:p-8">
-        <h2 className="mb-4 font-serif text-2xl font-bold text-navy dark:text-ivory sm:text-3xl">
-          Combined Vote Audit Log (Share Excel in Class Group)
-        </h2>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-navy dark:text-ivory sm:text-3xl">
+              Combined Vote Audit Log
+            </h2>
+            <p className="text-xs text-navy/65 dark:text-ivory/65">
+              Retract any disputed vote so the real Roll Number holder can vote
+              again.
+            </p>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-navy/45 dark:text-ivory/45" />
+            <input
+              type="text"
+              value={voteSearch}
+              onChange={(e) => setVoteSearch(e.target.value)}
+              placeholder="Search Roll No. or Name..."
+              className="w-full rounded-full border border-navy/15 bg-white py-2 pl-9 pr-4 text-xs text-navy outline-none focus:border-saffron dark:border-white/15 dark:bg-navy-deep dark:text-ivory"
+            />
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-navy/15 text-xs uppercase tracking-wider text-navy/70 dark:border-white/15 dark:text-ivory/70">
@@ -394,10 +495,11 @@ export default function AdminAuditPage() {
                 <th className="py-3 pr-4">Stream</th>
                 <th className="py-3 pr-4">Crown</th>
                 <th className="py-3 pr-4">Voted For</th>
+                <th className="py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy/10 dark:divide-white/10">
-              {votes.map((v) => (
+              {filteredVotes.map((v) => (
                 <tr key={v.id}>
                   <td className="py-3 pr-4 font-bold">{v.roll_no}</td>
                   <td className="py-3 pr-4">{v.voter_name}</td>
@@ -410,15 +512,26 @@ export default function AdminAuditPage() {
                   <td className="py-3 pr-4 font-semibold text-saffron dark:text-saffron-light">
                     {v.candidate_name}
                   </td>
+                  <td className="py-3 text-right">
+                    <button
+                      type="button"
+                      disabled={retractingId === v.id}
+                      onClick={() => handleRetractVote(v)}
+                      className="inline-flex items-center gap-1 rounded-full border border-crimson/30 bg-rose-50 px-3 py-1 text-xs font-semibold text-crimson transition hover:bg-crimson hover:text-white disabled:opacity-50 dark:border-rose-400/30 dark:bg-rose-950/60 dark:text-rose-200 dark:hover:bg-rose-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {retractingId === v.id ? "Retracting..." : "Retract"}
+                    </button>
+                  </td>
                 </tr>
               ))}
-              {votes.length === 0 && (
+              {filteredVotes.length === 0 && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="py-8 text-center text-navy/60 dark:text-ivory/60"
                   >
-                    No votes recorded yet.
+                    No matching votes found.
                   </td>
                 </tr>
               )}
