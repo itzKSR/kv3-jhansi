@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { ArrowDown, Crown, Sparkles, Users, Wallet } from "lucide-react";
+import { ArrowRight, Calendar, MapPin, Users, Wallet } from "lucide-react";
 import Hero3DCanvas from "@/components/Hero3DCanvas";
+import TiltCard from "@/components/TiltCard";
 import ParticipantForm from "@/components/ParticipantForm";
 import CrownVotingForm from "@/components/CrownVotingForm";
 import VoteGraph from "@/components/VoteGraph";
@@ -13,6 +14,9 @@ import { CROWN_CATEGORIES, EVENT_TITLE, SCHOOL_NAME } from "@/lib/constants";
 import type { CandidateTally } from "@/lib/voteCounter";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+const SCHOOL_LOGO_URL =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQnNkkFI2cqfvb085dubJIIm0VRZ-N_Vu8NLog3QZeig&s";
 
 export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,7 +32,6 @@ export default function HomePage() {
   const [participantStats, setParticipantStats] = useState({
     total: 0,
     willingToPayCount: 0,
-    mode: "supabase" as "supabase" | "demo",
   });
 
   const fetchParticipants = useCallback(async () => {
@@ -39,10 +42,9 @@ export default function HomePage() {
       setParticipantStats({
         total: data.total ?? 0,
         willingToPayCount: data.willingToPayCount ?? 0,
-        mode: data.mode ?? "supabase",
       });
     } catch {
-      // Ignore transient fetch errors on initial load
+      // Ignore transient load error
     }
   }, []);
 
@@ -74,24 +76,24 @@ export default function HomePage() {
   useGSAP(
     () => {
       gsap.from(".hero-stagger", {
-        y: 36,
+        y: 28,
         opacity: 0,
-        duration: 0.9,
-        stagger: 0.12,
+        duration: 0.85,
+        stagger: 0.1,
         ease: "power3.out",
         clearProps: "transform",
       });
 
       gsap.utils.toArray<HTMLElement>(".reveal-section").forEach((section) => {
         gsap.from(section, {
-          y: 44,
+          y: 36,
           opacity: 0,
-          duration: 0.85,
+          duration: 0.8,
           ease: "power2.out",
           clearProps: "transform",
           scrollTrigger: {
             trigger: section,
-            start: "top 85%",
+            start: "top 86%",
             once: true,
           },
         });
@@ -104,96 +106,146 @@ export default function HomePage() {
     <div ref={containerRef} className="relative min-h-screen">
       <Hero3DCanvas />
 
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-obsidian/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <Crown className="h-5 w-5 text-gold-400" />
-            <span className="font-display text-sm font-bold tracking-wide text-white sm:text-base">
-              KV3 JHANSI &bull; ADIEU XII
-            </span>
-          </div>
-          <nav className="flex items-center gap-4 text-xs font-semibold text-zinc-300 sm:gap-6 sm:text-sm">
-            <a href="#register" className="transition hover:text-gold-300">
-              Register
+      {/* Heritage Top Ribbon */}
+      <div className="kvs-ribbon h-1.5 w-full" />
+
+      {/* Editorial Masthead */}
+      <header className="sticky top-0 z-30 border-b border-navy/10 bg-ivory/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+          <a href="#" className="flex items-center gap-3">
+            <img
+              src={SCHOOL_LOGO_URL}
+              alt="PM SHRI KV No. 3 Jhansi Logo"
+              className="h-11 w-11 rounded-full border border-navy/15 bg-white p-0.5 object-contain shadow-sm"
+            />
+            <div className="leading-tight">
+              <p className="font-serif text-base font-bold text-navy sm:text-lg">
+                KV No. 3, Jhansi
+              </p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-saffron">
+                Class XII Farewell
+              </p>
+            </div>
+          </a>
+
+          <nav className="flex items-center gap-5 text-xs font-semibold uppercase tracking-wider text-navy/75 sm:gap-7">
+            <a href="#register" className="transition hover:text-saffron">
+              RSVP
             </a>
-            <a href="#vote" className="transition hover:text-gold-300">
-              Vote
+            <a href="#vote" className="transition hover:text-saffron">
+              Ballot
             </a>
-            <a href="#results" className="transition hover:text-gold-300">
-              Live Graph
+            <a
+              href="#results"
+              className="rounded-full bg-navy px-4 py-2 text-ivory transition hover:bg-saffron"
+            >
+              Live Tally
             </a>
           </nav>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="mx-auto flex min-h-[82vh] max-w-5xl flex-col items-center justify-center px-5 py-20 text-center">
-        <div className="hero-stagger mb-5 inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-300">
-          <Sparkles className="h-3.5 w-3.5" />
-          {SCHOOL_NAME}
-        </div>
+      {/* Split Editorial Hero */}
+      <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-5 pb-20 pt-14 lg:grid-cols-12 lg:pt-20">
+        <div className="lg:col-span-7">
+          <p className="hero-stagger inline-flex items-center gap-2 rounded-full border border-saffron/30 bg-saffron/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-saffron-dark">
+            {SCHOOL_NAME}
+          </p>
 
-        <h1 className="hero-stagger font-display text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-7xl">
-          One Last Night.{" "}
-          <span className="gold-gradient-text block sm:inline">
-            Forever Legends.
-          </span>
-        </h1>
+          <h1 className="hero-stagger mt-6 font-serif text-5xl font-bold leading-[1.05] tracking-tight text-navy sm:text-7xl">
+            The Final Bell.{" "}
+            <span className="italic text-saffron">Class XII Adieu.</span>
+          </h1>
 
-        <p className="hero-stagger mt-6 max-w-2xl text-base text-zinc-300 sm:text-lg">
-          Welcome to the official {EVENT_TITLE} portal. Register your Class XII
-          attendance, vote for the KV Farewell Crowns, and watch the live tally
-          unfold.
-        </p>
+          <p className="hero-stagger mt-5 max-w-xl text-base leading-relaxed text-navy/70 sm:text-lg">
+            Celebrating the outgoing batch of Kendriya Vidyalaya No. 3, Jhansi.
+            Confirm your attendance for the {EVENT_TITLE}, nominate classmates
+            for the official KV crowns, and follow the live vote standings.
+          </p>
 
-        {/* Live Counters */}
-        <div className="hero-stagger mt-9 grid w-full max-w-xl grid-cols-2 gap-4">
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              <Users className="h-4 w-4 text-gold-400" />
-              Registered
-            </div>
-            <p className="mt-1 font-display text-3xl font-extrabold text-white">
-              {participantStats.total}
-            </p>
+          {/* Actions */}
+          <div className="hero-stagger mt-8 flex flex-wrap items-center gap-4">
+            <a
+              href="#register"
+              className="inline-flex items-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-ivory shadow-editorial transition hover:bg-navy-soft"
+            >
+              Confirm Your RSVP
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <a
+              href="#vote"
+              className="inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white/80 px-7 py-3.5 text-sm font-semibold text-navy transition hover:border-saffron hover:text-saffron"
+            >
+              Vote for Crowns
+            </a>
           </div>
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              <Wallet className="h-4 w-4 text-emerald-400" />
-              Willing to Pay
+
+          {/* Live Batch Counters */}
+          <div className="hero-stagger mt-10 grid max-w-md grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-navy/10 bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/55">
+                <Users className="h-3.5 w-3.5 text-saffron" />
+                Total RSVPs
+              </div>
+              <p className="mt-1 font-serif text-3xl font-bold text-navy">
+                {participantStats.total}
+              </p>
             </div>
-            <p className="mt-1 font-display text-3xl font-extrabold text-emerald-300">
-              {participantStats.willingToPayCount}
-            </p>
+            <div className="rounded-2xl border border-navy/10 bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-navy/55">
+                <Wallet className="h-3.5 w-3.5 text-emerald-700" />
+                Willing to Pay
+              </div>
+              <p className="mt-1 font-serif text-3xl font-bold text-emerald-800">
+                {participantStats.willingToPayCount}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="hero-stagger mt-10 flex flex-wrap justify-center gap-4">
-          <a
-            href="#register"
-            className="rounded-full bg-gold-400 px-7 py-3.5 text-sm font-bold text-black shadow-glow transition hover:scale-105"
-          >
-            Register for Farewell
-          </a>
-          <a
-            href="#vote"
-            className="rounded-full border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-bold text-white backdrop-blur transition hover:border-purple-400/60 hover:bg-purple-500/10"
-          >
-            Vote for Crowns
-          </a>
-        </div>
+        {/* Right Side: Interactive 3D-Tilt School Crest Gala Pass */}
+        <div className="hero-stagger lg:col-span-5">
+          <TiltCard className="navy-surface rounded-3xl p-8 text-ivory shadow-crest">
+            <div className="flex items-center justify-between border-b border-ivory/15 pb-5">
+              <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-brass-light">
+                Official Gala Pass
+              </span>
+              <span className="rounded-full border border-brass-light/40 bg-brass/20 px-3 py-0.5 text-[11px] font-semibold text-brass-light">
+                Class XII
+              </span>
+            </div>
 
-        <a
-          href="#register"
-          aria-label="Scroll down"
-          className="hero-stagger mt-14 animate-bounce text-zinc-500 hover:text-gold-300"
-        >
-          <ArrowDown className="h-5 w-5" />
-        </a>
+            <div className="my-8 flex flex-col items-center text-center">
+              <div className="rounded-full border-2 border-brass-light/70 bg-white p-2 shadow-lg">
+                <img
+                  src={SCHOOL_LOGO_URL}
+                  alt="KV No. 3 Jhansi Crest"
+                  className="h-28 w-28 rounded-full object-contain"
+                />
+              </div>
+              <h2 className="mt-5 font-serif text-3xl font-bold tracking-wide text-ivory">
+                PM SHRI KV No. 3
+              </h2>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.25em] text-saffron-light">
+                Jhansi &bull; Uttar Pradesh
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 border-t border-ivory/15 pt-5 text-xs text-ivory/80">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-brass-light" />
+                <span>KV3 Jhansi Campus</span>
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Calendar className="h-4 w-4 text-brass-light" />
+                <span>Outgoing Batch</span>
+              </div>
+            </div>
+          </TiltCard>
+        </div>
       </section>
 
-      {/* Main Forms Grid */}
+      {/* Main Content */}
       <main className="mx-auto max-w-6xl space-y-16 px-5 pb-28">
         <section
           id="register"
@@ -211,7 +263,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Live Vote Graph */}
         <section id="results" className="reveal-section">
           <VoteGraph
             selectedCategory={selectedCategory}
@@ -224,8 +275,13 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-white/10 py-8 text-center text-xs text-zinc-500">
-        Built for {SCHOOL_NAME} &bull; {EVENT_TITLE}
+      <footer className="border-t border-navy/10 bg-parchment/60 py-8 text-center text-xs text-navy/65">
+        <p className="font-serif text-base font-semibold text-navy">
+          {SCHOOL_NAME}
+        </p>
+        <p className="mt-1">
+          {EVENT_TITLE} &bull; Crafted for the Outgoing Class XII Batch
+        </p>
       </footer>
     </div>
   );
